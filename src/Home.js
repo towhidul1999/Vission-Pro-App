@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
 
     header: {
         height: 220,
-        backgroundColor: '#EFE6FF',
+        backgroundColor: '#acfc9c',
         borderBottomLeftRadius: 90,
         borderBottomRightRadius: 90,
         overflow: 'hidden',
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
         width: 300,
         height: 300,
         borderRadius: 150,
-        backgroundColor: '#D9C8FF',
+        backgroundColor: '#22c55e',
         position: 'absolute',
         top: -100,
         left: -100,
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     },
 
     link: {
-        color: '#8E5CF7',
+        color: '#22c55e',
         fontWeight: '600',
     },
 
@@ -128,12 +128,12 @@ const styles = StyleSheet.create({
 
     forgot: {
         fontSize: 12,
-        color: '#8E5CF7',
+        color: '#22c55e',
         fontWeight: '600',
     },
 
     button: {
-        backgroundColor: '#8E5CF7',
+        backgroundColor: '#22c55e',
         height: 50,
         borderRadius: 25,
         alignItems: 'center',
