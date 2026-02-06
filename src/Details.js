@@ -5,14 +5,25 @@ import {
     StyleSheet,
     TouchableOpacity,
     FlatList,
-    Switch
+    Switch,
+    Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const Details = () => {
-    const [alarms, setAlarms] = useState([
-        { id: '1', time: '07:00 AM', label: 'Morning Alarm', enabled: true },
-        { id: '2', time: '09:30 AM', label: 'Office Alarm', enabled: false },
-    ]);
+    const [alarms, setAlarms] = useState([]);
+    const [showPicker, setShowPicker] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+
+    const addAlarm = () => {
+        const newAlarm = {
+            id: Date.now().toString(),
+            date: selectedDate,
+            enabled: true,
+        };
+        setAlarms([...alarms, newAlarm]);
+        setShowPicker(false);
+    };
 
     const toggleAlarm = (id) => {
         setAlarms(prev =>
@@ -24,33 +35,50 @@ const Details = () => {
         );
     };
 
-    const addAlarm = () => {
-        const newAlarm = {
-            id: Date.now().toString(),
-            time: '06:00 AM',
-            label: 'New Alarm',
-            enabled: true,
-        };
-        setAlarms([...alarms, newAlarm]);
+    const onChange = (event, date) => {
+        if (date) setSelectedDate(date);
     };
+
+    const formatDate = (date) =>
+        date.toLocaleDateString();
+
+    const formatTime = (date) =>
+        date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     return (
         <View style={styles.container}>
             <Text style={styles.title}>⏰ Alarms</Text>
 
-            <TouchableOpacity style={styles.addButton} onPress={addAlarm}>
-                <Text style={styles.addButtonText}>+ Add Alarm</Text>
+            <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowPicker(true)}
+            >
+                <Text style={styles.addButtonText}>+ Set Alarm</Text>
             </TouchableOpacity>
+
+            {showPicker && (
+                <View style={styles.pickerBox}>
+                    <DateTimePicker
+                        value={selectedDate}
+                        mode="datetime"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={onChange}
+                    />
+
+                    <TouchableOpacity style={styles.saveButton} onPress={addAlarm}>
+                        <Text style={styles.saveText}>Save Alarm</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             <FlatList
                 data={alarms}
                 keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => (
                     <View style={styles.alarmCard}>
                         <View>
-                            <Text style={styles.time}>{item.time}</Text>
-                            <Text style={styles.label}>{item.label}</Text>
+                            <Text style={styles.time}>{formatTime(item.date)}</Text>
+                            <Text style={styles.label}>{formatDate(item.date)}</Text>
                         </View>
 
                         <Switch
@@ -67,7 +95,7 @@ const Details = () => {
 export default Details;
 
 /* =======================
-   STYLES (CSS-LIKE)
+   STYLES
    ======================= */
 
 const styles = StyleSheet.create({
@@ -87,11 +115,28 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: 14,
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 16,
     },
     addButtonText: {
         color: '#020617',
         fontSize: 16,
+        fontWeight: '600',
+    },
+    pickerBox: {
+        backgroundColor: '#020617',
+        borderRadius: 16,
+        padding: 10,
+        marginBottom: 20,
+    },
+    saveButton: {
+        backgroundColor: '#38bdf8',
+        padding: 12,
+        borderRadius: 12,
+        marginTop: 10,
+        alignItems: 'center',
+    },
+    saveText: {
+        color: '#020617',
         fontWeight: '600',
     },
     alarmCard: {
