@@ -7,6 +7,8 @@ import {
     FlatList,
     Switch,
     Platform,
+    SafeAreaView,
+    ScrollView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -16,212 +18,202 @@ const Details = () => {
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedTime, setSelectedTime] = useState(new Date());
-
-    const addAlarm = () => {
-        // Combine selected date and time
-        const combinedDateTime = new Date(selectedDate);
-        combinedDateTime.setHours(selectedTime.getHours());
-        combinedDateTime.setMinutes(selectedTime.getMinutes());
-        combinedDateTime.setSeconds(0);
-
-        const newAlarm = {
-            id: Date.now().toString(),
-            date: combinedDateTime,
-            enabled: true,
-        };
-        setAlarms([...alarms, newAlarm]);
-        setShowDatePicker(false);
-        setShowTimePicker(false);
-        // Reset to current date/time for next alarm
-        setSelectedDate(new Date());
-        setSelectedTime(new Date());
-    };
-
-    const deleteAlarm = (id) => {
-        setAlarms(prev => prev.filter(alarm => alarm.id !== id));
-    };
-
-    const toggleAlarm = (id) => {
-        setAlarms(prev =>
-            prev.map(alarm =>
-                alarm.id === id
-                    ? { ...alarm, enabled: !alarm.enabled }
-                    : alarm
-            )
-        );
-    };
-
-    const onDateChange = (event, date) => {
-        if (Platform.OS === 'android') {
-            setShowDatePicker(false);
-        }
-        if (date) {
-            setSelectedDate(date);
-            // On Android, automatically show time picker after date selection
-            if (Platform.OS === 'android') {
-                setTimeout(() => setShowTimePicker(true), 100);
-            }
-        }
-    };
-
-    const onTimeChange = (event, time) => {
-        if (Platform.OS === 'android') {
-            setShowTimePicker(false);
-        }
-        if (time) {
-            setSelectedTime(time);
-        }
-    };
-
-    const formatDate = (date) =>
-        date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
-
-    const formatTime = (date) =>
-        date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const [isSelecting, setIsSelecting] = useState(false);
 
     const startAddingAlarm = () => {
         setSelectedDate(new Date());
         setSelectedTime(new Date());
         setShowDatePicker(true);
+        setIsSelecting(true);
     };
 
+    const cancelSelection = () => {
+        setShowDatePicker(false);
+        setShowTimePicker(false);
+        setIsSelecting(false);
+    };
+
+    const addAlarm = () => {
+        const combinedDateTime = new Date(selectedDate);
+        combinedDateTime.setHours(selectedTime.getHours());
+        combinedDateTime.setMinutes(selectedTime.getMinutes());
+        combinedDateTime.setSeconds(0);
+
+        setAlarms(prev => [
+            ...prev,
+            {
+                id: Date.now().toString(),
+                date: combinedDateTime,
+                enabled: true,
+            },
+        ]);
+
+        cancelSelection();
+    };
+
+    const toggleAlarm = (id) => {
+        setAlarms(prev =>
+            prev.map(a =>
+                a.id === id ? { ...a, enabled: !a.enabled } : a
+            )
+        );
+    };
+
+    const deleteAlarm = (id) => {
+        setAlarms(prev => prev.filter(a => a.id !== id));
+    };
+
+    const onDateChange = (event, date) => {
+        if (Platform.OS === 'android') setShowDatePicker(false);
+        if (date) {
+            setSelectedDate(date);
+            if (Platform.OS === 'android') {
+                setTimeout(() => setShowTimePicker(true), 150);
+            }
+        }
+    };
+
+    const onTimeChange = (event, time) => {
+        if (Platform.OS === 'android') setShowTimePicker(false);
+        if (time) setSelectedTime(time);
+    };
+
+    const formatDate = (d) =>
+        d.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+
+    const formatTime = (d) =>
+        d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>⏰ Alarms</Text>
-
-            <TouchableOpacity
-                style={styles.addButton}
-                onPress={startAddingAlarm}
+        <SafeAreaView style={styles.safe}>
+            {/* TOP SECTION (SCROLLABLE) */}
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
             >
-                <Text style={styles.addButtonText}>+ Set New Alarm</Text>
-            </TouchableOpacity>
+                <Text style={styles.title}>⏰ Alarms</Text>
 
-            {/* iOS: Show both pickers together */}
-            {Platform.OS === 'ios' && (showDatePicker || showTimePicker) && (
-                <View style={styles.pickerBox}>
-                    <Text style={styles.pickerLabel}>Select Date</Text>
-                    <DateTimePicker
-                        value={selectedDate}
-                        mode="date"
-                        display="spinner"
-                        onChange={onDateChange}
-                        minimumDate={new Date()}
-                    />
+                <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={startAddingAlarm}
+                >
+                    <Text style={styles.addButtonText}>+ Set New Alarm</Text>
+                </TouchableOpacity>
 
-                    <Text style={styles.pickerLabel}>Select Time</Text>
-                    <DateTimePicker
-                        value={selectedTime}
-                        mode="time"
-                        display="spinner"
-                        onChange={onTimeChange}
-                    />
+                {/* iOS PICKERS */}
+                {Platform.OS === 'ios' && isSelecting && (
+                    <View style={styles.pickerContainer}>
+                        <Text style={styles.pickerHeaderText}>Set Alarm</Text>
 
-                    <View style={styles.buttonRow}>
-                        <TouchableOpacity
-                            style={styles.cancelButton}
-                            onPress={() => {
-                                setShowDatePicker(false);
-                                setShowTimePicker(false);
-                            }}
-                        >
-                            <Text style={styles.cancelText}>Cancel</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.saveButton}
-                            onPress={addAlarm}
-                        >
-                            <Text style={styles.saveText}>Save Alarm</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            )}
-
-            {/* Android: Show date picker */}
-            {Platform.OS === 'android' && showDatePicker && (
-                <DateTimePicker
-                    value={selectedDate}
-                    mode="date"
-                    display="default"
-                    onChange={onDateChange}
-                    minimumDate={new Date()}
-                />
-            )}
-
-            {/* Android: Show time picker */}
-            {Platform.OS === 'android' && showTimePicker && (
-                <DateTimePicker
-                    value={selectedTime}
-                    mode="time"
-                    display="default"
-                    onChange={onTimeChange}
-                />
-            )}
-
-            {/* Android: Show confirm button after selections */}
-            {Platform.OS === 'android' && !showDatePicker && !showTimePicker && selectedDate && selectedTime && (
-                <View style={styles.androidConfirm}>
-                    <Text style={styles.selectedText}>
-                        Selected: {formatDate(selectedDate)} at {formatTime(selectedTime)}
-                    </Text>
-                    <View style={styles.buttonRow}>
-                        <TouchableOpacity
-                            style={styles.cancelButton}
-                            onPress={() => {
-                                setSelectedDate(new Date());
-                                setSelectedTime(new Date());
-                            }}
-                        >
-                            <Text style={styles.cancelText}>Cancel</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.saveButton}
-                            onPress={addAlarm}
-                        >
-                            <Text style={styles.saveText}>Confirm</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            )}
-
-            <FlatList
-                data={alarms}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <View style={styles.alarmCard}>
-                        <View style={styles.alarmInfo}>
-                            <Text style={styles.time}>{formatTime(item.date)}</Text>
-                            <Text style={styles.label}>{formatDate(item.date)}</Text>
+                        <View style={styles.pickerBox}>
+                            <Text style={styles.pickerLabel}>Date</Text>
+                            <DateTimePicker
+                                value={selectedDate}
+                                mode="date"
+                                display="spinner"
+                                onChange={onDateChange}
+                                minimumDate={new Date()}
+                                textColor="#ffffff"
+                            />
                         </View>
 
-                        <View style={styles.alarmActions}>
-                            <Switch
-                                value={item.enabled}
-                                onValueChange={() => toggleAlarm(item.id)}
-                                trackColor={{ false: '#334155', true: '#22c55e' }}
-                                thumbColor={item.enabled ? '#ffffff' : '#94a3b8'}
+                        <View style={styles.pickerBox}>
+                            <Text style={styles.pickerLabel}>Time</Text>
+                            <DateTimePicker
+                                value={selectedTime}
+                                mode="time"
+                                display="spinner"
+                                onChange={onTimeChange}
+                                textColor="#ffffff"
                             />
+                        </View>
+
+                        <View style={styles.previewBox}>
+                            <Text style={styles.previewTime}>
+                                {formatTime(selectedTime)}
+                            </Text>
+                            <Text style={styles.previewDate}>
+                                {formatDate(selectedDate)}
+                            </Text>
+                        </View>
+
+                        <View style={styles.buttonRow}>
                             <TouchableOpacity
-                                style={styles.deleteButton}
-                                onPress={() => deleteAlarm(item.id)}
+                                style={styles.cancelButton}
+                                onPress={cancelSelection}
                             >
-                                <Text style={styles.deleteText}>🗑️</Text>
+                                <Text style={styles.cancelText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.saveButton}
+                                onPress={addAlarm}
+                            >
+                                <Text style={styles.saveText}>Save</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 )}
-                ListEmptyComponent={() => (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No alarms set</Text>
-                        <Text style={styles.emptySubtext}>Tap "Set New Alarm" to create one</Text>
+
+                {/* ANDROID PICKERS */}
+                {Platform.OS === 'android' && showDatePicker && (
+                    <DateTimePicker
+                        value={selectedDate}
+                        mode="date"
+                        onChange={onDateChange}
+                        minimumDate={new Date()}
+                    />
+                )}
+
+                {Platform.OS === 'android' && showTimePicker && (
+                    <DateTimePicker
+                        value={selectedTime}
+                        mode="time"
+                        onChange={onTimeChange}
+                    />
+                )}
+            </ScrollView>
+
+            {/* ALARM LIST */}
+            <FlatList
+                data={alarms}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                    <View
+                        style={[
+                            styles.alarmCard,
+                            !item.enabled && styles.alarmDisabled,
+                        ]}
+                    >
+                        <View>
+                            <Text style={styles.time}>{formatTime(item.date)}</Text>
+                            <Text style={styles.label}>{formatDate(item.date)}</Text>
+                        </View>
+
+                        <View style={styles.actions}>
+                            <Switch
+                                value={item.enabled}
+                                onValueChange={() => toggleAlarm(item.id)}
+                            />
+                            <TouchableOpacity onPress={() => deleteAlarm(item.id)}>
+                                <Text style={styles.delete}>🗑️</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 )}
+                ListEmptyComponent={
+                    <Text style={styles.emptyText}>
+                        No alarms yet. Add one ⏰
+                    </Text>
+                }
             />
-        </View>
+        </SafeAreaView>
     );
 };
 
@@ -229,86 +221,99 @@ export default Details;
 
 /* =======================
    STYLES
-   ======================= */
+======================= */
 
 const styles = StyleSheet.create({
-    container: {
+    safe: {
         flex: 1,
         backgroundColor: '#0f172a',
+    },
+    scrollContent: {
         padding: 20,
+    },
+    listContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 30,
     },
     title: {
         fontSize: 32,
         fontWeight: '700',
-        color: '#ffffff',
+        color: '#fff',
         marginBottom: 20,
     },
     addButton: {
         backgroundColor: '#22c55e',
-        paddingVertical: 14,
+        padding: 16,
         borderRadius: 14,
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
     addButtonText: {
         color: '#020617',
-        fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '700',
     },
-    pickerBox: {
+    pickerContainer: {
         backgroundColor: '#1e293b',
-        borderRadius: 16,
-        padding: 16,
+        padding: 20,
+        borderRadius: 20,
         marginBottom: 20,
     },
+    pickerHeaderText: {
+        color: '#fff',
+        fontSize: 20,
+        fontWeight: '700',
+        textAlign: 'center',
+        marginBottom: 16,
+    },
+    pickerBox: {
+        backgroundColor: '#0f172a',
+        borderRadius: 14,
+        marginBottom: 16,
+        overflow: 'hidden',
+    },
     pickerLabel: {
-        color: '#f8fafc',
-        fontSize: 16,
+        color: '#94a3b8',
+        padding: 10,
         fontWeight: '600',
-        marginTop: 12,
-        marginBottom: 8,
+    },
+    previewBox: {
+        alignItems: 'center',
+        marginVertical: 12,
+    },
+    previewTime: {
+        fontSize: 32,
+        color: '#22c55e',
+        fontWeight: '700',
+    },
+    previewDate: {
+        color: '#38bdf8',
     },
     buttonRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 16,
         gap: 12,
+        marginTop: 10,
     },
     saveButton: {
-        backgroundColor: '#38bdf8',
-        padding: 12,
+        flex: 1,
+        backgroundColor: '#22c55e',
+        padding: 14,
         borderRadius: 12,
         alignItems: 'center',
-        flex: 1,
     },
     saveText: {
         color: '#020617',
-        fontWeight: '600',
-        fontSize: 15,
+        fontWeight: '700',
     },
     cancelButton: {
+        flex: 1,
         backgroundColor: '#475569',
-        padding: 12,
+        padding: 14,
         borderRadius: 12,
         alignItems: 'center',
-        flex: 1,
     },
     cancelText: {
-        color: '#f8fafc',
-        fontWeight: '600',
-        fontSize: 15,
-    },
-    androidConfirm: {
-        backgroundColor: '#1e293b',
-        padding: 16,
-        borderRadius: 16,
-        marginBottom: 20,
-    },
-    selectedText: {
-        color: '#f8fafc',
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: 12,
+        color: '#fff',
+        fontWeight: '700',
     },
     alarmCard: {
         backgroundColor: '#1e293b',
@@ -319,42 +324,29 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    alarmInfo: {
-        flex: 1,
+    alarmDisabled: {
+        opacity: 0.5,
     },
-    alarmActions: {
+    time: {
+        fontSize: 26,
+        color: '#fff',
+        fontWeight: '700',
+    },
+    label: {
+        color: '#94a3b8',
+        marginTop: 4,
+    },
+    actions: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
     },
-    time: {
-        fontSize: 24,
-        color: '#f8fafc',
-        fontWeight: '700',
-    },
-    label: {
-        fontSize: 14,
-        color: '#94a3b8',
-        marginTop: 4,
-    },
-    deleteButton: {
-        padding: 8,
-    },
-    deleteText: {
-        fontSize: 20,
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        marginTop: 60,
+    delete: {
+        fontSize: 18,
     },
     emptyText: {
-        color: '#94a3b8',
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    emptySubtext: {
         color: '#64748b',
-        fontSize: 14,
-        marginTop: 8,
+        textAlign: 'center',
+        marginTop: 40,
     },
 });
